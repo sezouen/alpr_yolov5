@@ -4,10 +4,8 @@ import pytesseract
 import time
 import numpy as np
 
-
-#Aron Joshua Holgado
 # --- Configuration ---
-MODEL_PATH = 'models/best.pt' # Path to your trained YOLOv5 model
+MODEL_PATH = 'best.pt' # Path to your trained YOLOv5 model
 CONFIDENCE_THRESHOLD = 0.5            # Minimum confidence to consider a detection
 CAMERA_INDEX = 0                      # 0 for default USB webcam, adjust for others (e.g., 1 for another USB, or PiCam might be 0)
 # Tesseract configuration for alphanumeric characters
