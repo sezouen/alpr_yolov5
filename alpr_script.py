@@ -4,6 +4,8 @@ import pytesseract
 import time
 import numpy as np
 
+
+#Aron Joshua Holgado
 # --- Configuration ---
 MODEL_PATH = 'models/best.pt' # Path to your trained YOLOv5 model
 CONFIDENCE_THRESHOLD = 0.5            # Minimum confidence to consider a detection
