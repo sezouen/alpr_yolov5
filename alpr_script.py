@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 # --- Configuration ---
-MODEL_PATH = 'C:/Users/WINDOWS/alpr/runs/detect/alpr_yolov5n/weights/best_openvino_model' # Path to your trained YOLOv5 model
+MODEL_PATH = '../best_openvino_model' # Path to your trained YOLOv5 model
 CONFIDENCE_THRESHOLD = 0.5            # Minimum confidence to consider a detection
 CAMERA_INDEX = 0                      # 0 for default USB webcam, adjust for others (e.g., 1 for another USB, or PiCam might be 0)
 # Tesseract configuration for alphanumeric characters
