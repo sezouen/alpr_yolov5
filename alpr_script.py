@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 # --- Configuration ---
-MODEL_PATH = 'best.pt' # Path to your trained YOLOv5 model
+MODEL_PATH = 'C:/Users/WINDOWS/alpr/runs/detect/alpr_yolov5n/weights/best_openvino_model' # Path to your trained YOLOv5 model
 CONFIDENCE_THRESHOLD = 0.5            # Minimum confidence to consider a detection
 CAMERA_INDEX = 0                      # 0 for default USB webcam, adjust for others (e.g., 1 for another USB, or PiCam might be 0)
 # Tesseract configuration for alphanumeric characters
@@ -44,51 +44,28 @@ while True:
         print("Failed to grab frame.")
         break
 
-    # Optional: Resize frame for faster inference if your model takes smaller input
-    # Note: YOLOv5 handles resizing internally, but you can explicitly resize
-    # if you want to control the input resolution for detection.
-    # resized_frame = cv2.resize(frame, (640, 640)) # Example for 640x640 input
+    results = model(frame, verbose=False, batch=1)
 
-    # Perform inference
-    # If your model was trained on 640x640, model(frame) will handle scaling.
-    # You can specify imgsz= to force a specific size for inference.
-    results = model(frame, verbose=False) # verbose=False suppresses prediction messages
-
-    # Process results
     for r in results:
-        boxes = r.boxes.xyxy.cpu().numpy()  # Bounding box coordinates (x1, y1, x2, y2)
-        confs = r.boxes.conf.cpu().numpy()  # Confidence scores
-        classes = r.boxes.cls.cpu().numpy() # Class IDs
+        boxes = r.boxes.xyxy.cpu().numpy()
+        confs = r.boxes.conf.cpu().numpy()
+        classes = r.boxes.cls.cpu().numpy()
 
         for box, conf, cls in zip(boxes, confs, classes):
-            # Assuming 'license_plate' is class 0 in your model's names list
-            # Check if the detected class is 'license_plate' and confidence is above threshold
             if model.names[int(cls)] == 'license_plate' and conf > CONFIDENCE_THRESHOLD:
                 x1, y1, x2, y2 = map(int, box)
 
-                # Ensure coordinates are within frame boundaries
                 x1, y1, x2, y2 = max(0, x1), max(0, y1), min(frame.shape[1], x2), min(frame.shape[0], y2)
 
-                # Crop the license plate region
                 lp_image = frame[y1:y2, x1:x2]
 
                 # --- OCR Pre-processing ---
-                # Convert to grayscale
+                # Convert the cropped image to grayscale first to reduce noise
                 gray_lp = cv2.cvtColor(lp_image, cv2.COLOR_BGR2GRAY)
 
-                # Apply adaptive thresholding or Otsu's thresholding for better text extraction
-                # Adjust parameters as needed for your lighting conditions
-                # _, thresh_lp = cv2.threshold(gray_lp, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                # Use adaptive thresholding for varying light conditions
+                # Adaptive thresholding
                 thresh_lp = cv2.adaptiveThreshold(gray_lp, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                                  cv2.THRESH_BINARY, 11, 2)
-
-                # Optional: Denoising (useful if plates are grainy)
-                # denoised_lp = cv2.fastNlMeansDenoising(gray_lp, None, 10, 7, 21)
-
-                # Optional: Sharpening (if text is blurry)
-                # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-                # sharpened_lp = cv2.filter2D(gray_lp, -1, kernel)
+                                                  cv2.THRESH_BINARY_INV, 11, 2)
 
                 # Perform OCR
                 lp_text = ""
@@ -97,28 +74,24 @@ while True:
                     # Clean up the extracted text: remove non-alphanumeric characters and whitespace
                     lp_text = "".join(filter(str.isalnum, lp_text)).strip().upper()
 
-                    if len(lp_text) > 2: # Only display if some text was found
+                    if len(lp_text) > 2:
                         print(f"Detected LP: {lp_text} (Conf: {conf:.2f})")
-                        # Draw bounding box and text
-                        color = (0, 255, 0) # Green for detected
+                        color = (0, 255, 0)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, f"{lp_text} ({conf:.2f})", (x1, y1 - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2, cv2.LINE_AA)
                     else:
-                        # Draw yellow if detection but no meaningful OCR
-                        color = (0, 255, 255) # Yellow
+                        color = (0, 255, 255)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, f"LP (No OCR)", (x1, y1 - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2, cv2.LINE_AA)
 
                 except Exception as e:
                     print(f"OCR Error: {e}")
-                    # Draw red if OCR entirely fails
-                    color = (0, 0, 255) # Red
+                    color = (0, 0, 255)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(frame, "OCR Failed!", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2, cv2.LINE_AA)
-
 
     # Calculate and display FPS
     fps_frame_count += 1
@@ -129,7 +102,6 @@ while True:
         fps_start_time = time.time()
 
     cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
 
     # Display the frame
     cv2.imshow('YOLOv5 License Plate Recognition', frame)
